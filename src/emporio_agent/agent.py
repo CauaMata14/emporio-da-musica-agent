@@ -87,14 +87,15 @@ class EmporioAgent:
         for _ in range(self.settings.max_tool_rounds):
             try:
                 response = self._create(history + new_messages)
-            except anthropic.APIConnectionError:
-                log.exception("Connection error")
+            # The SDK already retries 429/5xx/connection errors (max_retries=2) before raising.
+            except anthropic.APIConnectionError as exc:
+                log.error("Connection error: %s", exc)
                 return AgentReply(MSG_TECH_ERROR, tool_calls, error=True)
-            except anthropic.RateLimitError:
-                log.exception("Rate limited")
+            except anthropic.RateLimitError as exc:
+                log.error("Rate limited: %s", exc)
                 return AgentReply(MSG_TECH_ERROR, tool_calls, error=True)
             except anthropic.APIStatusError as exc:
-                log.exception("API error %s", exc.status_code)
+                log.error("API error %s: %s", exc.status_code, exc.message)
                 return AgentReply(MSG_TECH_ERROR, tool_calls, error=True)
 
             if response.stop_reason == "refusal":
