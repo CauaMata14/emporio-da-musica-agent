@@ -401,7 +401,7 @@ def consultar_politicas(secoes: list[str]) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------------------------
-# schemas exposed to Claude
+# schemas exposed to the model (JSON Schema, converted to Gemini function declarations in agent.py)
 # ---------------------------------------------------------------------------------------------
 
 CATEGORY_NAMES = [

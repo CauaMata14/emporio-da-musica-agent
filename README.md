@@ -24,13 +24,13 @@ Real, unedited conversations with the agent are in [`examples/`](examples/).
 
 ## 1. Quick start
 
-Requirements: Python 3.10+ and an [Anthropic API key](https://console.anthropic.com/).
+Requirements: Python 3.10+ and a **free** [Gemini API key](https://aistudio.google.com/apikey) (Google AI Studio, no credit card).
 
 ```bash
 git clone <this-repo> && cd emporio-da-musica-agent
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env                                     # then set ANTHROPIC_API_KEY in .env
+cp .env.example .env                                     # then set GEMINI_API_KEY in .env
 ```
 
 | What | Command |
@@ -45,9 +45,8 @@ Optional settings (`.env`):
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `CLAUDE_MODEL` | `claude-opus-5-5` | Any Claude model id, e.g. `claude-sonnet-5-5`, `claude-haiku-5-5` |
-| `CLAUDE_EFFORT` | `low` | Reasoning effort (`low` / `medium` / `high`) |
-| `ENABLE_FALLBACK` | `1` | Server-side refusal fallback (Claude API only; set `0` behind proxies/other platforms) |
+| `GEMINI_MODEL` | `gemini-3.8-flash` | Any Gemini model id with function calling |
+| `GEMINI_THINKING_LEVEL` | `low` | Reasoning depth (`low` / `high`) |
 | `AGENT_REFERENCE_DATE` | real date | Freeze "today" (`YYYY-MM-DD`) — useful because the dataset's orders are from 2025/early 2026 |
 | `AGENT_DB_PATH` | `data/runtime/conversations.db` | SQLite file for conversation history |
 
@@ -59,7 +58,7 @@ Optional settings (`.env`):
 flowchart LR
     U[Customer<br/>CLI / Streamlit] -->|message| A[EmporioAgent<br/>tool-use loop]
     A <-->|history| M[(SQLite<br/>conversations)]
-    A <-->|system prompt + tools + history| C[Claude<br/>Messages API]
+    A <-->|system prompt + tools + history| C[Gemini API<br/>google-genai]
     A -->|tool calls| T{tools.py}
     T --> D[(CSV data<br/>pandas, in memory)]
     T --> P[policies.md<br/>10 sections]
@@ -67,9 +66,9 @@ flowchart LR
     PDF[políticas_da_loja.pdf] -.->|scripts/ingest_policies.py| P
 ```
 
-Per customer message, the agent loads the session history, calls Claude with the system prompt and
-the tool schemas, executes whatever tools Claude requests (all requested tools in a round run and
-return in a single message), and repeats until Claude answers in text (max 8 rounds). The completed
+Per customer message, the agent loads the session history, calls Gemini with the system prompt and
+the tool schemas, executes whatever tools the model requests (all requested tools in a round run and
+return in a single message), and repeats until the model answers in text (max 8 rounds). The completed
 turn is then persisted atomically.
 
 | Tool | Answers questions like | Data source |
@@ -93,7 +92,7 @@ src/emporio_agent/
   memory.py     SQLite conversation store
   agent.py      the tool-use loop
 cli.py, app.py  interfaces            scripts/   ingestion + example generator
-tests/          25 tests (tools, policies, persistence, agent loop with a fake client)
+tests/          26 tests (tools, policies, persistence, agent loop with a fake client)
 ```
 
 ---
@@ -114,7 +113,7 @@ Alternatives considered:
   small and well known, so purpose-built tools are safer, testable and cheaper.
 - **Frameworks (LangChain, LlamaIndex, LangGraph)** — not needed for one agent with 8 tools. The loop
   is ~100 lines with full control over persistence, error handling and refusals, and nothing hidden
-  between the prompt and the model. Would reconsider for multi-agent flows or many integrations.
+  between the prompt and the model. The SDK's automatic function calling is disabled for the same reason. Would reconsider for multi-agent flows or many integrations.
 
 Key design rule: **the LLM chooses, the code computes.** Discounts, PIX price, installment limits,
 "days since delivery" and "is this inside the 7-day window?" are computed in `tools.py` and returned
@@ -122,19 +121,23 @@ as explicit fields (`dentro_prazo_arrependimento_7_dias: false`), so the model e
 instead of doing date math. The policy manual itself demands this (§7.1: never give prices, stock or
 deadlines without checking the system).
 
-### 3.2 Model and provider: Claude via the Anthropic API
-- Default `claude-opus-5-5`, with `effort: low`. Tool selection and applying policy rules
-  correctly matter more than raw speed in a prototype that is evaluated on correctness; low effort
-  keeps latency and cost reasonable for chat. The model is one env var (`CLAUDE_MODEL`), so the
-  same code runs on `claude-sonnet-5-5` or `claude-haiku-5-5`. In production I would pick the
+### 3.2 Model and provider: Gemini via the Google Gen AI SDK
+- **Why Gemini:** it has a free tier with native function calling and good Portuguese, so anyone
+  evaluating this repository can run it with a free key and no billing setup. The first version of
+  the agent was written against the Claude API (see the git history); I switched providers before
+  delivery for this reason. Only `agent.py` changed: tools, prompt, data layer and persistence are
+  provider-independent.
+- Default `gemini-3.8-flash` with `thinking_level: low`: a fast model is enough because the hard
+  parts (prices, dates, rules) are computed by the tools, and low thinking keeps chat latency down.
+  Both are env vars (`GEMINI_MODEL`, `GEMINI_THINKING_LEVEL`). In production I would pick the
   cheapest model that passes an eval set of real conversations (see §7).
-- Strong native tool use (parallel tool calls, structured `tool_use` blocks), good Portuguese, and
-  prompt caching.
-- **Prompt caching**: the system prompt and tool definitions are static (no timestamps — the current
-  date comes from a tool), and automatic caching (`cache_control`) reuses the prefix and previous turns.
-- **Refusal fallback** (`ENABLE_FALLBACK`): if a safety classifier declines a request, the API
-  re-runs it on a fallback model server-side; if it still refuses, the agent answers with a polite
-  scope message and the turn is not persisted.
+- The system prompt and tool definitions are static (no timestamps — the current date comes from a
+  tool), which keeps the request prefix identical across turns and lets the provider's implicit
+  context caching reuse it.
+- **Blocked answers:** if the model's answer is blocked by a safety filter (or comes back empty),
+  the agent replies with a polite scope message and the turn is not persisted.
+- **Thought signatures:** Gemini returns opaque signatures with its function calls; the full `Content`
+  objects are stored and sent back unchanged so multi-step tool use keeps its reasoning context.
 
 ### 3.3 Retrieval for the policy manual: section routing instead of vector search
 The manual is ~2.5k words in 10 clearly numbered sections. Instead of chunking + embeddings, the
@@ -175,7 +178,7 @@ the conversation language; code, comments and docs are in English.
   share the same `EmporioAgent`.
 - **Conversation history in SQLite** (stdlib, zero setup). A customer may leave and come back
   ("my order number is…" an hour later), so history is per session id (`--session` in the CLI, `?session=` in
-  the URL in Streamlit). The full API history (including tool calls/results) is stored append-only and
+  the URL in Streamlit). The full API history (including function calls/responses and thought signatures) is stored append-only and
   written atomically per turn, so a failed turn never leaves a broken history.
 
 ---
@@ -250,10 +253,13 @@ shows which tools were called on every turn.
 - Shipping cost for other cities is not calculable (no table in the data) → hand-off.
 - Hand-off tickets go to a local JSONL file; there is no real queue/CRM integration or customer authentication beyond e-mail/phone matching.
 - Single-process, synchronous; no streaming of the answer to the UI.
+- The Gemini free tier has low per-minute request limits (the SDK retries 429s with backoff, but a
+  burst of messages can still fail) and Google may use free-tier data to improve its products. Fine
+  for a prototype with fictional data; production would use a paid tier.
 
 **With more time I would**
 1. Build an **eval set** (~50 real-style conversations with expected tool calls and graded answers,
-   LLM-as-judge + exact checks on prices/deadlines) and use it to choose the cheapest model/effort that
+   LLM-as-judge + exact checks on prices/deadlines) and use it to choose the cheapest model/thinking level that
    passes, and to catch regressions in the prompt.
 2. Move data to a real database (Postgres/SQLite) behind the same tool functions, with stock read live.
 3. Add semantic/hybrid product search (embeddings over name + description + specs) and a reranker.
@@ -271,8 +277,9 @@ shows which tools were called on every turn.
 I used **Claude (Anthropic) through Claude Code** as a pair-programmer for this case. My workflow:
 
 1. **Framing first.** I gave Claude the case PDF, the data and the policy manual and asked it to read
-   everything before writing code. I made the key product decisions — LLM provider (Claude), interface
-   (CLI + Streamlit) and that the work should be delivered in small, reviewable commits.
+   everything before writing code. I made the key product decisions — LLM provider, interface
+   (CLI + Streamlit) and that the work should be delivered in small, reviewable commits. I first
+   chose the Claude API and later switched the agent to Gemini so the project runs on a free API key (§3.2).
 2. **Data exploration before design.** Claude profiled the CSVs and the PDF; the inconsistencies in
    §4 came out of this step and shaped the design (e.g. active-only promotions, identity check because
    of the duplicate e-mail, PDF layout extraction).

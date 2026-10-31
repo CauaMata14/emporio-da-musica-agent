@@ -71,9 +71,11 @@ def run(selected: set[int] | None = None) -> None:
         lines = [
             f"# Example {idx} — {title}",
             "",
-            f"- Model: `{settings.model}` (effort `{settings.effort}`)",
+            f"- Model: `{settings.model}` (thinking level `{settings.thinking_level}`)",
             f"- Reference date: {os.environ['AGENT_REFERENCE_DATE']} 10:00 (America/Campo_Grande)",
             f"- Generated: {datetime.now():%Y-%m-%d %H:%M} by `scripts/generate_examples.py` (unedited)",
+            "- The conversation is in Portuguese because the store's customers are Brazilian; the "
+            "tools the agent called are listed under each customer message.",
             "",
             "---",
         ]

@@ -1,6 +1,6 @@
 """Conversation persistence in SQLite (standard library, zero setup).
 
-The full Anthropic message history (including tool_use / tool_result / thinking blocks) is stored
+The full Gemini message history (including function calls/responses and thought signatures) is stored
 per session, so a customer can come back later and the agent still has the context — and so the
 history replayed to the API is exactly what the model produced (append-only).
 """
@@ -35,7 +35,7 @@ class ConversationStore:
         rows = self._conn.execute(
             "SELECT role, content FROM messages WHERE session_id = ? ORDER BY seq", (session_id,)
         ).fetchall()
-        return [{"role": role, "content": json.loads(content)} for role, content in rows]
+        return [{"role": role, "parts": json.loads(content)} for role, content in rows]
 
     def append_many(self, session_id: str, messages: list[dict[str, Any]]) -> None:
         """Append a whole turn atomically (a failed turn never leaves a half-written history)."""
@@ -46,7 +46,7 @@ class ConversationStore:
             ).fetchone()
             self._conn.executemany(
                 "INSERT INTO messages VALUES (?, ?, ?, ?, ?)",
-                [(session_id, start + i, m["role"], json.dumps(m["content"], ensure_ascii=False), now)
+                [(session_id, start + i, m["role"], json.dumps(m["parts"], ensure_ascii=False), now)
                  for i, m in enumerate(messages)],
             )
 

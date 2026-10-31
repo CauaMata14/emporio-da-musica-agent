@@ -23,11 +23,8 @@ STORE_TZ = ZoneInfo("America/Campo_Grande")
 
 @dataclass(frozen=True)
 class Settings:
-    model: str = field(default_factory=lambda: os.getenv("CLAUDE_MODEL", "claude-opus-5-5"))
-    effort: str = field(default_factory=lambda: os.getenv("CLAUDE_EFFORT", "low"))
-    enable_fallback: bool = field(
-        default_factory=lambda: os.getenv("ENABLE_FALLBACK", "1").lower() not in {"0", "false", "no"}
-    )
+    model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-3.8-flash"))
+    thinking_level: str = field(default_factory=lambda: os.getenv("GEMINI_THINKING_LEVEL", "low"))
     max_tokens: int = 4096
     max_tool_rounds: int = 8
     db_path: Path = field(

@@ -21,10 +21,10 @@ def test_invalid_section_is_reported():
 
 def test_store_roundtrip(tmp_path):
     store = ConversationStore(tmp_path / "c.db")
-    store.append_many("s1", [{"role": "user", "content": "oi"},
-                             {"role": "assistant", "content": [{"type": "text", "text": "Olá!"}]}])
-    store.append_many("s1", [{"role": "user", "content": "tchau"}])
+    store.append_many("s1", [{"role": "user", "parts": [{"text": "oi"}]},
+                             {"role": "model", "parts": [{"text": "Olá!"}]}])
+    store.append_many("s1", [{"role": "user", "parts": [{"text": "tchau"}]}])
     msgs = store.load("s1")
-    assert [m["role"] for m in msgs] == ["user", "assistant", "user"]
-    assert msgs[1]["content"][0]["text"] == "Olá!"
+    assert [m["role"] for m in msgs] == ["user", "model", "user"]
+    assert msgs[1]["parts"][0]["text"] == "Olá!"
     assert store.load("other") == []
