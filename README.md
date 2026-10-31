@@ -45,7 +45,7 @@ Optional settings (`.env`):
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `GEMINI_MODEL` | `gemini-3.8-flash` | Any Gemini model id with function calling |
+| `GEMINI_MODEL` | `gemini-3.6-flash` | Any Gemini model id with function calling |
 | `GEMINI_THINKING_LEVEL` | `low` | Reasoning depth (`low` / `high`) |
 | `AGENT_REFERENCE_DATE` | real date | Freeze "today" (`YYYY-MM-DD`) — useful because the dataset's orders are from 2025/early 2026 |
 | `AGENT_DB_PATH` | `data/runtime/conversations.db` | SQLite file for conversation history |
@@ -127,7 +127,7 @@ deadlines without checking the system).
   the agent was written against the Claude API (see the git history); I switched providers before
   delivery for this reason. Only `agent.py` changed: tools, prompt, data layer and persistence are
   provider-independent.
-- Default `gemini-3.8-flash` with `thinking_level: low`: a fast model is enough because the hard
+- Default `gemini-3.6-flash` with `thinking_level: low`: a fast model is enough because the hard
   parts (prices, dates, rules) are computed by the tools, and low thinking keeps chat latency down.
   Both are env vars (`GEMINI_MODEL`, `GEMINI_THINKING_LEVEL`). In production I would pick the
   cheapest model that passes an eval set of real conversations (see §7).

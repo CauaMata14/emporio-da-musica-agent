@@ -72,9 +72,10 @@ class EmporioAgent:
     ):
         self.settings = settings or Settings()
         self.store = store or ConversationStore(self.settings.db_path)
-        # Retries 429/5xx with exponential backoff (the free tier has low per-minute limits).
+        # Retries 429/5xx with exponential backoff (the free tier has low per-minute limits and
+        # occasional 503 "high demand"); the timeout (ms) keeps a stuck request from hanging the chat.
         self.client = client or genai.Client(http_options=types.HttpOptions(
-            retry_options=types.HttpRetryOptions(attempts=4, initial_delay=2.0)))
+            timeout=60_000, retry_options=types.HttpRetryOptions(attempts=3, initial_delay=2.0)))
         self.config = types.GenerateContentConfig(
             system_instruction=SYSTEM_PROMPT,
             tools=TOOLS,

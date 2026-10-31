@@ -23,7 +23,7 @@ STORE_TZ = ZoneInfo("America/Campo_Grande")
 
 @dataclass(frozen=True)
 class Settings:
-    model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-3.8-flash"))
+    model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-3.6-flash"))
     thinking_level: str = field(default_factory=lambda: os.getenv("GEMINI_THINKING_LEVEL", "low"))
     max_tokens: int = 4096
     max_tool_rounds: int = 8
