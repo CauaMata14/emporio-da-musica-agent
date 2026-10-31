@@ -82,6 +82,9 @@ def run(selected: set[int] | None = None) -> None:
         print(f"\n=== {slug}")
         for user in turns:
             reply = agent.chat(session, user)
+            if reply.error:
+                # Never save a transcript with API failures in it (e.g. free-tier quota exhausted).
+                sys.exit(f"API error in {slug}; examples/{slug}.md left unchanged. Try again later.")
             print(f"> {user}\n{reply.text}\n")
             lines += ["", f"**Cliente:** {user}", ""]
             if reply.tool_calls:

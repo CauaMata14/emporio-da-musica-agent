@@ -26,6 +26,11 @@ Real, unedited conversations with the agent are in [`examples/`](examples/).
 
 Requirements: Python 3.10+ and a **free** [Gemini API key](https://aistudio.google.com/apikey) (Google AI Studio, no credit card).
 
+> **Free-tier quota:** at the time of writing the free tier allows about **20 requests per day per
+> model**, and one customer message takes 1–3 requests (one per tool round). If you get the agent's
+> "probleminha técnico" message and a `429` in the terminal, the daily quota is used up: wait for the
+> reset or set `GEMINI_MODEL` to another free model (e.g. `gemini-3.6-flash`) in `.env`.
+
 ```bash
 git clone <this-repo> && cd emporio-da-musica-agent
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
@@ -45,7 +50,7 @@ Optional settings (`.env`):
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `GEMINI_MODEL` | `gemini-3.6-flash` | Any Gemini model id with function calling |
+| `GEMINI_MODEL` | `gemini-3.5-flash-lite` | Any Gemini model id with function calling |
 | `GEMINI_THINKING_LEVEL` | `low` | Reasoning depth (`low` / `high`) |
 | `AGENT_REFERENCE_DATE` | real date | Freeze "today" (`YYYY-MM-DD`) — useful because the dataset's orders are from 2025/early 2026 |
 | `AGENT_DB_PATH` | `data/runtime/conversations.db` | SQLite file for conversation history |
@@ -127,8 +132,10 @@ deadlines without checking the system).
   the agent was written against the Claude API (see the git history); I switched providers before
   delivery for this reason. Only `agent.py` changed: tools, prompt, data layer and persistence are
   provider-independent.
-- Default `gemini-3.6-flash` with `thinking_level: low`: a fast model is enough because the hard
-  parts (prices, dates, rules) are computed by the tools, and low thinking keeps chat latency down.
+- Default `gemini-3.5-flash-lite` with `thinking_level: low`: a small, fast model is enough because
+  the hard parts (prices, dates, rules) are computed by the tools, and low thinking keeps chat
+  latency down. On the free tier the larger `gemini-3.8-flash` returned `503` (high demand) during
+  development; flash-lite answered reliably and chose the right tools in every example.
   Both are env vars (`GEMINI_MODEL`, `GEMINI_THINKING_LEVEL`). In production I would pick the
   cheapest model that passes an eval set of real conversations (see §7).
 - The system prompt and tool definitions are static (no timestamps — the current date comes from a
@@ -253,9 +260,10 @@ shows which tools were called on every turn.
 - Shipping cost for other cities is not calculable (no table in the data) → hand-off.
 - Hand-off tickets go to a local JSONL file; there is no real queue/CRM integration or customer authentication beyond e-mail/phone matching.
 - Single-process, synchronous; no streaming of the answer to the UI.
-- The Gemini free tier has low per-minute request limits (the SDK retries 429s with backoff, but a
-  burst of messages can still fail) and Google may use free-tier data to improve its products. Fine
-  for a prototype with fictional data; production would use a paid tier.
+- The Gemini free tier is small (about 20 requests per day per model; the SDK retries transient
+  429/503 errors, but an exhausted daily quota ends in the agent's polite error message) and Google
+  may use free-tier data to improve its products. Fine for a prototype with fictional data;
+  production would use a paid tier.
 
 **With more time I would**
 1. Build an **eval set** (~50 real-style conversations with expected tool calls and graded answers,
