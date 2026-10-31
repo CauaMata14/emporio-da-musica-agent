@@ -2,5 +2,6 @@ anthropic>=2.3.0
 pandas>=2.2
 pypdf>=5.0
 python-dotenv>=1.0
+tzdata>=2024.1  # timezone database for zoneinfo on Windows
 streamlit>=1.40
 pytest>=8.0

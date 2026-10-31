@@ -6,15 +6,7 @@ live data (catalogue, prices, promotions, stock, orders) and applies the store's
 (returns, payments, shipping, warranty, opening hours), and politely handles out-of-scope requests.
 
 Built for the Artefact *AI Engineer – Full-Stack para Aplicações com IA Generativa* technical case.
-
-```
-Cliente: Me arrependi da minha compra, posso devolver meu pedido?
-Lia:     Pode sim, dependendo do prazo! Me passa o número do pedido e o e-mail ou telefone do cadastro?
-Cliente: É o pedido 7, meu e-mail é leticia.rocha@jmail.com
-         🔧 consultar_pedido(7, …)  🔧 consultar_politicas(["trocas_devolucoes"])
-Lia:     …seu pedido foi recebido há 3 dias, dentro dos 7 dias do direito de arrependimento…
-```
-*(illustrative — the real, unedited transcripts are in [`examples/`](examples/))*
+Real, unedited conversations with the agent are in [`examples/`](examples/).
 
 ---
 
