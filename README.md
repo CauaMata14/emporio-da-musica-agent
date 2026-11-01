@@ -280,8 +280,6 @@ shows which tools were called on every turn.
 
 ## 8. Use of AI coding assistants
 
-<!-- Cauã: review this section so it describes exactly what you did. -->
-
 I used **Claude (Anthropic) through Claude Code** as a pair-programmer for this case. My workflow:
 
 1. **Framing first.** I gave Claude the case PDF, the data and the policy manual and asked it to read
@@ -295,8 +293,9 @@ I used **Claude (Anthropic) through Claude Code** as a pair-programmer for this 
    interfaces → docs — one commit per step (see the git history). Each step was run/tested before the next.
 4. **Testing without spending tokens.** Tools and the agent loop are covered by `pytest` (the loop
    uses a fake client returning real SDK objects), so the logic was validated before any API call.
-5. **Review and validation.** I reviewed the code and the decisions, ran the agent with my API key,
-   generated the example conversations and checked them against the data and the policy manual.
+5. **Review and validation.** Claude ran the agent with my API key to generate the example
+   conversations and checked them against the data and the policy manual; I reviewed the
+   transcripts, the code and the decisions.
 
 What worked well: using the assistant to explore the data and to write the tests together with the code.
 What I kept under my control: the scope, the trade-offs documented here and the final review.
